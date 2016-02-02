@@ -33,6 +33,9 @@ precipitation_dates = strptime(precipitation[,1], '%Y%m%d')
 tsprecipitation = xts(x=precipitation[,2], order.by=precipitation_dates)
 tsprecipitation[is.na(tsprecipitation)] = 0
 
+names(tsprecipitation2) = c('Precipitation')
+tsprecipitation = rbind(tsprecipitation, tsprecipitation2)
+
 tscombined = merge(tscombined, tsprecipitation)
 tscombined[is.na(tscombined$Precipitation)]$Precipitation = 0
 
