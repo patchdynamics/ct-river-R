@@ -3,15 +3,33 @@ require(raster)
 
 air_temp_for_zones <- function (zones, zone_rasters, years = rbind('2009', '2010', '2011', '2012', '2013', '2014')) {
   
-  days_in_year = 365
   num_years = length(years)
-  data = matrix(ncol = 2 + length(zones), nrow = days_in_year * num_years)
+  data = matrix(ncol = 2 + length(zones), nrow = 366 * num_years)
+  
+  basefile = '/Users/matthewxi/Documents/Projects/GIS/NARR/air.sfc.'
+  
+  # set up zone and extents
+  file.nc <- paste(basefile, years[1] ,'.nc', sep='')  
+  file.nc
+  r.temperature <- raster(file.nc, 1)
+
+  zone_masks = c()
+  for(z in 1:length(zones)) {
+    zone = zone_rasters[[z]]
+    zone[zone == 0] = NA
+    zone.extent = projectExtent(zone, crs(zone))
+    res(zone.extent) = res(r.temperature) / 4
+    zone.prepared = projectRaster(zone, zone.extent)    
+    zone_masks = cbind(zone_masks, zone.prepared)
+  }
   
   flush.console()
+  row=0
   for(y in 1:num_years){
     year = years[y]  
     
-    file.nc <- paste('/Users/matthewxi/Documents/Projects/GIS/NARR/air.sfc.', year ,'.nc', sep='')
+    file.nc <- paste(basefile, year ,'.nc', sep='')
+    days_in_year = nbands(raster(file.nc))
     
     for(day in 1:days_in_year) {
       cat(year, ":", (y-1) * days_in_year + day, "of " , days_in_year * num_years, " \r") 
@@ -23,16 +41,15 @@ air_temp_for_zones <- function (zones, zone_rasters, years = rbind('2009', '2010
         paste('zone ', toString(zones[z]), 'of ', toString(length(zones)), "zones  f\r") 
         flush.console()
         
-        zone = zone_rasters[[z]]
-        clipped = resample(r.temperature, zone, method='ngb')
-        result = zonal(clipped, zone, 'mean', digits=1)
+        r.temperature.clipped = projectRaster(r.temperature, zone_masks[[z]])     
+        result = zonal(r.temperature.clipped, zone_masks[[z]], 'mean', digits=1)
       
         
-        temp.mean = result[2,2]
-        row = (y-1)*(days_in_year) + day;
+        temp.mean = result[1,2]
         data[row,1] = year
         data[row,2] = day
         data[row,2+z] = temp.mean
+        row = row + 1
       }
     }
     
