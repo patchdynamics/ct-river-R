@@ -43,7 +43,7 @@ legend("topright", bty="n",
 # fit HPI %
 hpi_fractionation = fractionation[as.character(fractionation$Collection.Date) != "4/15/14",]
 hpi_fractionation_series = xts(x=hpi_fractionation, order.by=collection.dates[as.character(collection.dates) != "2014-04-15"])
-hpi_fractionation_series = merge(discharges_for_samples, hpi_fractionation_series[!is.na(index(hpi_fractionation_series))])
+hpi_fractionation_series = merge(tscombined$Discharge, hpi_fractionation_series[!is.na(index(hpi_fractionation_series))])
 hpi_fdf = as.data.frame(hpi_fractionation_series)
 
 
@@ -51,8 +51,8 @@ model = y ~ poly(x,2)
 model = y ~ log(x)
 
 
-plot(hpi_fdf$discharges_for_samples, hpi_fdf$HPI_Percentage)
-x = hpi_fdf$discharges_for_samples
+plot(hpi_fdf$Discharge, hpi_fdf$HPI_Percentage)
+x = hpi_fdf$Discharge
 y = hpi_fdf$HPI_Percentage
 x = x[!is.na(y)]
 y = y[!is.na(y)]

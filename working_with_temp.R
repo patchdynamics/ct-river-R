@@ -34,6 +34,9 @@ for(i in nrow(tstemp):1){
   processed[i] = highest
 }
 tslval = processed
+
+par(mfrow=c(2,1))
+plot(tshval)
 plot(tslval)
 
 
@@ -77,11 +80,15 @@ discharge = na.approx(ts2, na.rm=FALSE)
 discharge = as.data.frame(discharge)$Discharge
 plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
      col=rainbow(length(unique(.indexmon(ts2)))),
-     xlim=xlimit/1000)
+     xlim=xlimit/1000,
+     xlab='Discharge / 1000  cfs',
+     ylab='[HPOA] ppm',
+     main='Highest Avg Surface Temp   290K < T < 295K'
+     )
 legend( x="topright", 
         legend=month.abb[min(.indexmon(ts2)):max(.indexmon(ts2))],
-        col=rainbow(length(unique(.indexmon(ts2)))), lwd=1, lty=c(1,2), 
-        pch=c(15,17) )
+        col=rainbow(length(unique(.indexmon(ts2)))), 
+        pch=1)
 
 
 # find the freshet
@@ -95,12 +102,20 @@ xlimit = c(0,100000) # 100000
 discharge = na.approx(ts2, na.rm=FALSE)
 discharge = as.data.frame(discharge)$Discharge
 plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
-     col=rainbow(length(unique(.indexmon(ts2)))),
-     xlim=xlimit/1000)
+     #col=rainbow(length(unique(.indexmon(ts2)))),
+     col=rainbow(length(unique(.indexyear(ts2)))), 
+     xlim=xlimit/1000,
+     xlab='Discharge / 1000  cfs',
+     ylab='[HPOA] ppm',
+     main='Highest Avg Surface Temp   280K < T < 290K',
+     #sub='Freshets Seem to Occur Exclusively in this Range'
+     )
 legend( x="topright", 
-        legend=month.abb[min(.indexmon(ts2)):max(.indexmon(ts2))],
-        col=rainbow(length(unique(.indexmon(ts2)))), lwd=1, lty=c(1,2), 
-        pch=c(15,17) )
+        #legend=month.abb[min(.indexmon(ts2)):max(.indexmon(ts2))],
+        #col=rainbow(length(unique(.indexmon(ts2)))), 
+        legend = as.character(unique(.indexyear(ts2)) + 1900),
+        col=rainbow(length(unique(.indexyear(ts2)))), 
+        pch=1 )
 
 #summer
 times2 = index(tshval[tshval$Temperature >= 295.15 & tslval$Temperature >= 295.15])
@@ -117,12 +132,13 @@ xlimit = c(min(discharge[!is.na(discharge)]),100000) # 100000
 par(mfrow=c(2,1))
 plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
      col=rainbow(length(unique(.indexmon(ts2)))),
-     xlim=xlimit/1000, log="x")
+     xlim=xlimit/1000, #log="x"
+     )
 legend( x="bottomright", 
         legend=month.abb[min(.indexmon(ts2)):max(.indexmon(ts2))-1],
         col=rainbow(length(unique(.indexmon(ts2)))), lwd=1, lty=c(1,2), 
         pch=c(15,17) )
-#plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
+plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
      col=colors(ts2),
      xlim=xlimit/1000)
 hpoa = as.data.frame(ts2)$HPOA.mgl
@@ -151,7 +167,7 @@ legend( x="topright",
         col=rainbow(length(unique(.indexmon(ts2)))), lwd=1, lty=c(1,2), 
         pch=c(15,17) )
 plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
-     col=colors(ts2),
+     col=year_colors(ts2),
      xlim=xlimit/1000)
 hpoa = as.data.frame(ts2)$HPOA.mgl
 lm.hpoa = lm(hpoa ~ discharge, data = data.frame(hpoa = hpoa, discharge = discharge))
