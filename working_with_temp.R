@@ -36,8 +36,8 @@ for(i in nrow(tstemp):1){
 tslval = processed
 
 par(mfrow=c(2,1))
-plot(tshval)
-plot(tslval)
+plot(tshval, main='Max Avg Rising Surface Temp', ylab='Temperature (K)')
+plot(tslval, main='Min Avg Falling Surface Temp', ylab='Temperature (K)')
 
 
 tsrollingmean = rollmean(tstemp, 5)
@@ -70,32 +70,13 @@ legend( x="topleft",
         pch=c(15,17) )
 
 
-# after spring by temp
-times2 = index(tshval[tshval$Temperature >= 290.15 & tshval$Temperature < 295.15])
-ts2 = ts[times2]
-
-ylimit = c(1,3.5)  # 3.5
-xlimit = c(0,100000) # 100000
-discharge = na.approx(ts2, na.rm=FALSE)
-discharge = as.data.frame(discharge)$Discharge
-plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
-     col=rainbow(length(unique(.indexmon(ts2)))),
-     xlim=xlimit/1000,
-     xlab='Discharge / 1000  cfs',
-     ylab='[HPOA] ppm',
-     main='Highest Avg Surface Temp   290K < T < 295K'
-     )
-legend( x="topright", 
-        legend=month.abb[min(.indexmon(ts2)):max(.indexmon(ts2))],
-        col=rainbow(length(unique(.indexmon(ts2)))), 
-        pch=1)
 
 
 # find the freshet
 # looks like it pretty much happens in this range.
 times2 = index(tshval[tshval$Temperature >= 280.15 & tshval$Temperature < 290.15])
 ts2 = ts[times2]
-#ts2 = ts2['2015-01-01/2015-12-31']
+#ts2 = ts2['2011-01-01/2011-12-31']
 
 ylimit = c(1,3.5)  # 3.5
 xlimit = c(0,100000) # 100000
@@ -117,10 +98,36 @@ legend( x="topright",
         col=rainbow(length(unique(.indexyear(ts2)))), 
         pch=1 )
 
+# after freshet by temp
+times2 = index(tshval[tshval$Temperature >= 290.15 & tshval$Temperature < 295.15])
+ts2 = ts[times2]
+
+ylimit = c(1,3.5)  # 3.5
+xlimit = c(0,100000) # 100000
+discharge = na.approx(ts2, na.rm=FALSE)
+discharge = as.data.frame(discharge)$Discharge
+plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
+     #col=rainbow(length(unique(.indexmon(ts2)))),
+     col=rainbow(length(unique(.indexyear(ts2))))[.indexyear(ts2) - 110], 
+     
+     xlim=xlimit/1000,
+     xlab='Discharge / 1000  cfs',
+     ylab='[HPOA] ppm',
+     main='290K < Max Avg Rising Surface Temperature < 295K'
+)
+legend( x="topright", 
+        #legend=month.abb[min(.indexmon(ts2)):max(.indexmon(ts2))],
+        #col=rainbow(length(unique(.indexmon(ts2)))), 
+        legend=unique(.indexyear(ts2)) + 2000,
+        col=rainbow(length(unique(.indexyear(ts2)))),
+        pch=1)
+
+
 #summer
 times2 = index(tshval[tshval$Temperature >= 295.15 & tslval$Temperature >= 295.15])
 ts2 = ts[times2]
-ts2 = ts[.indexmon(ts) >= 7 & .indexmon(ts) <= 9]
+#ts2 = ts[.indexmon(ts) >= 7 & .indexmon(ts) <= 9]
+ts2 = ts2[.indexyear(ts2) != 113]
 
 ylimit = c(1,3.5)  # 3.5
 discharge = na.approx(ts2$Discharge, na.rm=FALSE)
@@ -129,15 +136,20 @@ xlimit = c(min(discharge[!is.na(discharge)]),100000) # 100000
 
 #discharge[discharge < 0] = 1
 
-par(mfrow=c(2,1))
+par(mfrow=c(1,1))
 plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
-     col=rainbow(length(unique(.indexmon(ts2)))),
-     xlim=xlimit/1000, #log="x"
+     #col=rainbow(length(unique(.indexmon(ts2)))),
+     col=rainbow(5)[.indexyear(ts2)-110],
+     xlim=xlimit/1000, #log="x",
+     pch=.indexyear(ts2)-110
      )
 legend( x="bottomright", 
-        legend=month.abb[min(.indexmon(ts2)):max(.indexmon(ts2))-1],
-        col=rainbow(length(unique(.indexmon(ts2)))), lwd=1, lty=c(1,2), 
-        pch=c(15,17) )
+        #legend=month.abb[min(.indexmon(ts2)):max(.indexmon(ts2))-1],
+        #col=rainbow(length(unique(.indexmon(ts2)))), lwd=1, lty=c(1,2), 
+        legend=2011:2015,
+        col=rainbow(5),
+        pch=1:5)
+
 plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
      col=colors(ts2),
      xlim=xlimit/1000)
@@ -150,7 +162,7 @@ legend("topleft", bty="n",
        legend=paste("R2 =",format(summary(lm.hpoa)$adj.r.squared, digits=4)))
 
 
-#fall 1
+#fall 1 - no good
 times2 = index(tshval[tslval$Temperature >= 290.15 & tslval$Temperature <= 295.15])
 ts2 = ts[times2]
 #ts2 = ts2['2015-01-01/2015-12-31']
@@ -160,12 +172,16 @@ xlimit = c(0,100000) # 100000
 discharge = na.approx(ts2, na.rm=FALSE)
 discharge = as.data.frame(discharge)$Discharge
 plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
-     col=rainbow(length(unique(.indexmon(ts2)))),
-     xlim=xlimit/1000)
+     col=rainbow(5)[.indexyear(ts2)-110],
+     xlim=xlimit/1000,
+     pch=.indexyear(ts2)-110)
 legend( x="topright", 
-        legend=month.abb[min(.indexmon(ts2)):max(.indexmon(ts2)) + 1],
-        col=rainbow(length(unique(.indexmon(ts2)))), lwd=1, lty=c(1,2), 
-        pch=c(15,17) )
+        #legend=month.abb[min(.indexmon(ts2)):max(.indexmon(ts2)) + 1],
+        legend = 2011:2015,
+        col=rainbow(5),
+        lwd=1, lty=c(1,2), 
+        pch=1:5 )
+
 plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
      col=year_colors(ts2),
      xlim=xlimit/1000)
@@ -176,7 +192,11 @@ legend("topleft", bty="n",
        legend=paste("R2 =",format(summary(lm.hpoa)$adj.r.squared, digits=4)))
 
 #fall 2
+
 times2 = index(tshval[tslval$Temperature >= 285.15 & tslval$Temperature <= 295.15])
+
+#times2 = index(tshval[tshval$Temperature >= 295.15 & tslval$Temperature <= 295.15])
+
 ts2 = ts[times2]
 #ts2 = ts2['2015-01-01/2015-12-31']
 
@@ -185,13 +205,27 @@ xlimit = c(0,100000) # 100000
 discharge = na.approx(ts2$Discharge, na.rm=FALSE)
 discharge = as.data.frame(discharge)$Discharge
 plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
-     col=rainbow(length(unique(.indexmon(ts2)))),
+     col=rainbow(5)[.indexyear(ts2)-110],
      xlim=xlimit/1000,
-     main='lval > 285, lval < 295')
+     main='lval > 285, lval < 295',
+     pch=.indexyear(ts2)-110)
 legend( x="topright", 
-        legend=month.abb[min(.indexmon(ts2)):max(.indexmon(ts2)) + 1],
-        col=rainbow(length(unique(.indexmon(ts2)))), lwd=1, lty=c(1,2), 
-        pch=c(15,17) )
+        legend = 2011:2015,
+        col=rainbow(5),
+        lwd=1, lty=c(1,2), 
+        pch=1:5  )
+
+df = as.data.frame(ts2[.indexyear(ts2)==111 & .indexmon(ts2) < 9])
+colors = colorRampPalette(c("blue", "red"))( length(as.vector(df$HPOA.mgl) ))
+#colors=rainbow(length(as.vector(df$HPOA.mgl) ))
+plot(df$Discharge/1000, df$HPOA.mgl, ylim=ylimit,
+     col=colors,
+     xlim=xlimit/1000,
+     main='lval > 285, lval < 295',
+     #typ='l',
+     pch=1
+     )
+
 
 plot(discharge/1000, as.data.frame(ts2)$HPOA.mgl, ylim=ylimit,
      col=colors(ts2),

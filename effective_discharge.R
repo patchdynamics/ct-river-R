@@ -28,6 +28,7 @@ ggplot(massflow, aes(x=Discharge, y=MassFlow, group=season, color=season)) +
   geom_smooth(method=lm, formula=y ~ exp(x / 100000)) 
 
 winter.df = as.data.frame(winter)
+#winter.df = winter.df[winter.df$Limb != 0]
 winter.df.sample = winter.df[sample(nrow(winter.df), .25 * nrow(winter.df)),]
 lm.summer = lm(MassFlow ~ exp(Discharge / 100000), winter.df.sample,na.action=na.omit  )
 summary(lm.summer)$adj.r.squared

@@ -1,12 +1,14 @@
 require(ncdf4)
 require(raster)
 
-air_temp_for_zones <- function (zones, zone_rasters, years = rbind('2009', '2010', '2011', '2012', '2013', '2014')) {
+air_temp_for_zones <- function (zones, 
+                                zone_rasters, 
+                                years = rbind('2009', '2010', '2011', '2012', '2013', '2014'),
+                                basefile = '/Users/matthewxi/Documents/Projects/GIS/NARR/air.sfc.') {
   
   num_years = length(years)
   data = matrix(ncol = 2 + length(zones), nrow = 366 * num_years)
   
-  basefile = '/Users/matthewxi/Documents/Projects/GIS/NARR/air.sfc.'
   
   # set up zone and extents
   file.nc <- paste(basefile, years[1] ,'.nc', sep='')  
@@ -24,7 +26,7 @@ air_temp_for_zones <- function (zones, zone_rasters, years = rbind('2009', '2010
   }
   
   flush.console()
-  row=0
+  row=1
   for(y in 1:num_years){
     year = years[y]  
     
@@ -32,7 +34,7 @@ air_temp_for_zones <- function (zones, zone_rasters, years = rbind('2009', '2010
     days_in_year = nbands(raster(file.nc))
     
     for(day in 1:days_in_year) {
-      cat(year, ":", (y-1) * days_in_year + day, "of " , days_in_year * num_years, " \r") 
+      cat(year, ":", (y-1) * days_in_year + day, "of " , days_in_year * num_years, " ") 
       flush.console()
       
       r.temperature <- raster(file.nc, day)
@@ -57,3 +59,12 @@ air_temp_for_zones <- function (zones, zone_rasters, years = rbind('2009', '2010
   return(data)
   
 }
+
+
+zones = rbind('CT River Watershed')
+zone_rasters = list()
+zone_rasters[1] = raster('/Users/matthewxi/Documents/Projects/PrecipGeoStats/GIS/CT_River_Watershed_NARR_Above_Haddam.tif')
+
+data = air_temp_for_zones(zones, zone_rasters, rbind('2015'), basefile='~/Downloads/air.sfc.')
+write.csv(data, file = "temperature_2015_all.csv")
+

@@ -15,7 +15,7 @@ ts.stemp = xts(stemp[,5:9], order.by=times)
 names(ts.stemp) = c('SoilTemperature1', 'SoilTemperature2', 
                     'SoilTemperature3', 'SoilTemperature4', 
                     'SoilTemperature5')
-plot(ts.stemp$SoilTemperature1)
+plot(ts.stemp$SoilTemperature2)
 
 
 pf = read.csv("soil_temp_percent_frozen.csv")

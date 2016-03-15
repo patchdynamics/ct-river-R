@@ -6,10 +6,10 @@
     num_years = length(years)
     data = matrix(ncol = 3 + length(zones)* length(levels), nrow = 365 * num_years )
     
-    basefile = '/Users/matthewxi/Documents/Projects/PrecipGeoStats/data/NARR/downloads/tsoil.'
+    basefile = '~/Downloads/tsoil.'
     
     # set up zone and extents
-    file.nc <- paste(basefile, years[1] ,'01.nc', sep='')  
+    file.nc <- paste(basefile, years[1] ,'12.nc', sep='')  
     file.nc
     narr.raster <- raster(file.nc, 1, level=1)
     
@@ -23,17 +23,13 @@
       zone_masks = cbind(zone_masks, zone.prepared)
     }
     
-    row=0
+    row=1
     for(y in 1:num_years){
       year = years[y]  
       
-      for(m in 1:12) {
+      for(m in 8:12) {
         
-        if(year == '2015' &&  m == 8) {
-          # skip out of there, all 2015 data isn't available yet
-          break
-        }
-        
+       
         file.nc <- paste(basefile, year ,  sprintf("%.2d",m), '.nc', sep='')
         bands_in_file = nbands(raster(file.nc, level=1))
         
@@ -75,6 +71,6 @@
   zone_rasters = list()
   zone_rasters[1] = raster('/Users/matthewxi/Documents/Projects/PrecipGeoStats/GIS/CT_River_Watershed_NARR_Above_Haddam.tif')
   
-  data = soil_temp_for_zones(zones, zone_rasters, c(1,2,3,4,5), rbind('2011', '2012', '2013', '2014', '2015'))
-  write.csv(data, file = "soil_temp_avg.csv")
+  data = soil_temp_for_zones(zones, zone_rasters, c(1,2,3,4,5), rbind('2015'))
+  write.csv(data, file = "soil_temp_avg_2.csv")
   
