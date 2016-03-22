@@ -33,7 +33,7 @@ air_temp_for_zones <- function (zones,
     file.nc <- paste(basefile, year ,'.nc', sep='')
     days_in_year = nbands(raster(file.nc))
     
-    for(day in 1:days_in_year) {
+    for(day in 1:1) {
       cat(year, ":", (y-1) * days_in_year + day, "of " , days_in_year * num_years, " ") 
       flush.console()
       
@@ -65,6 +65,6 @@ zones = rbind('CT River Watershed')
 zone_rasters = list()
 zone_rasters[1] = raster('/Users/matthewxi/Documents/Projects/PrecipGeoStats/GIS/CT_River_Watershed_NARR_Above_Haddam.tif')
 
-data = air_temp_for_zones(zones, zone_rasters, rbind('2015'), basefile='~/Downloads/air.sfc.')
-write.csv(data, file = "temperature_2015_all.csv")
+data = air_temp_for_zones(zones, zone_rasters, rbind('2011'))
+write.csv(data, file = "temperature_20110101.csv")
 

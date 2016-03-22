@@ -6,7 +6,7 @@
     num_years = length(years)
     data = matrix(ncol = 3 + length(zones)* length(levels), nrow = 365 * num_years )
     
-    basefile = '~/Downloads/tsoil.'
+    basefile = '~/Documents/Projects/PrecipGeoStats/data/NARR/downloads/tsoil.'
     
     # set up zone and extents
     file.nc <- paste(basefile, years[1] ,'12.nc', sep='')  
@@ -27,7 +27,7 @@
     for(y in 1:num_years){
       year = years[y]  
       
-      for(m in 8:12) {
+      for(m in 1:1) {
         
        
         file.nc <- paste(basefile, year ,  sprintf("%.2d",m), '.nc', sep='')
@@ -71,6 +71,6 @@
   zone_rasters = list()
   zone_rasters[1] = raster('/Users/matthewxi/Documents/Projects/PrecipGeoStats/GIS/CT_River_Watershed_NARR_Above_Haddam.tif')
   
-  data = soil_temp_for_zones(zones, zone_rasters, c(1,2,3,4,5), rbind('2015'))
-  write.csv(data, file = "soil_temp_avg_2.csv")
+  data = soil_temp_for_zones(zones, zone_rasters, c(1,2,3,4,5), rbind('2011'))
+  write.csv(data, file = "soil_temp_avg_201101.csv")
   

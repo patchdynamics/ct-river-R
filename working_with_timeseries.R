@@ -5,8 +5,9 @@ ts = tscombined['2011-01-01/2015-12-31']
 temp = read.csv("temperature_2011_2015.csv")
 temp = temp[!is.na(temp[,2]),]
 times = strptime(paste0(temp[,2],temp[,3]), '%Y%j')
-tstemp = xts(temp[,4], order.by=times)
-names(tstemp) = c('Temperature')
+ts.airtemp = xts(temp[,4], order.by=times)
+names(ts.airtemp) = c('Temperature')
+plot(ts.airtemp)
 
 stemp = read.csv("soil_temp_avg.csv")
 stemp = stemp[!is.na(stemp[,2]),]
@@ -24,7 +25,22 @@ times = strptime(paste0(pf[,2],sprintf("%.2d",pf[,3]),sprintf("%.2d",pf[,4])), '
 ts.pf = xts(pf[,5], order.by=times)
 
 
+water.temp = read.table("../data/haddam.water.temp.2011-2015.txt")
+head(water.temp)
+mean.water.temp = aggregate(water.temp$V6, list(water.temp$V3), mean)
+head(mean.water.temp)
+times = as.POSIXct(mean.water.temp$Group.1)
+ts.water.temp = xts(mean.water.temp$x, order.by=times)
+names(ts.water.temp) = 'WaterTemperature'
+plot(ts.water.temp$WaterTemperature)
+indexTZ(ts.water.temp)
 
+# never mind this time zone stuff
+#times <- as.POSIXct(paste0(water.temp$V3, ' ', water.temp$V4), tz='EST')
+#times2 <- as.POSIXlt(times, tz='EST5EDT')
+#unique(diff(times2))
+#ts.water.temp = xts(water.temp$V6, order.by = times2)
+#indexTZ(ts.water.temp)
 
 
 # find the warming / cooling profiles

@@ -1,9 +1,14 @@
 
+tsfilled =  na.approx(tscopy$Discharge)
+
 range = '2011-01-01/2016-01-01'
 discharge = tsfilled['2011-01-01/2016-01-01']
 discharge = tsfilled
 discharge.diff = diff.xts(discharge)
 discharge.diff[abs(discharge.diff) < 2000] = 0
+discharge.diff[is.na(discharge.diff)] = -9990
+discharge.diff[is.nan(discharge.diff)] = -9990
+
 
 par(mfrow=c(2,1))
 plot(discharge)

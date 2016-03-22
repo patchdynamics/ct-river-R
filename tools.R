@@ -9,7 +9,8 @@ timeseries.bin.and.average = function(ts.season, variable, bin.number = 100) {
     discharge = ts.ordered$Discharge, 
     var = ts.ordered[,variable])
   
-  df$bin = cut2(df$discharge, g=bin.number)
+  #df$bin = cut2(df$discharge, g=bin.number)
+  df$bin = cut2(df$discharge,  1:bin.number  * 100000/bin.number)
   avgs = ddply(df, ~bin, summarise, discharge.mean=mean(discharge), var.mean=mean(var), n=length(var))
   return(avgs)
 }
@@ -36,7 +37,7 @@ falling.step = function(timeseries){
   minimum = min(timeseries[,1])
   highest = minimum
   for(i in nrow(timeseries[,1]):1){
-    if(.indexyday(tstemp[i]) == 0) {
+    if(.indexyday(timeseries[i]) == 0) {
       highest = minimum
     }
     if(as.numeric(timeseries[i,1]) > as.numeric(highest)){

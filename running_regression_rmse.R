@@ -1,6 +1,8 @@
 library(reshape2)
 library(ggplot2)
 library(Hmisc)
+library(plyr)
+library(Metrics)
 source('multiplot.R')
 source('tools.R')
 
@@ -14,10 +16,16 @@ tscopy = tscopy.original
 #ts.temperature = ts.stemp$SoilTemperature2
 ts.temperature = tstemp
 
-running.regression(ts.stemp$SoilTemperature2, 2)
-running.regression(ts.stemp$SoilTemperature2, 2, mode = 2)
+running.regression(ts.stemp$SoilTemperature2, 2, 'flux.mgs')
+running.regression(ts.stemp$SoilTemperature2, 2, 'flux.mgs', mode = 2)
 
-running.regression = function(ts.temperature, window, nbins = 20, mode = 1){
+rval = running.regression(ts.stemp$SoilTemperature2, 4, 'HPOA.mgl', 
+                          mode = 2, maxy = 3, step=1)
+# , warming.stop.t = 282
+# , warming.stop.t = 400
+running.regression = function(tscopy, ts.temperature, window, variable, 
+                              nbins = 20, mode = 1, maxy=80000,
+                              plot=TRUE){
   
   rising.temp = rising.step(ts.temperature)
   falling.temp = falling.step(ts.temperature)
@@ -49,6 +57,9 @@ running.regression = function(ts.temperature, window, nbins = 20, mode = 1){
   regressions = NULL
   lms = NULL
   point.estimates = NULL
+  slopes = NULL
+  intercepts = NULL
+  rmses = NULL
   while(next.t < stop.t) {
     #print(next.t)
     min = next.t
@@ -57,12 +68,28 @@ running.regression = function(ts.temperature, window, nbins = 20, mode = 1){
     class.count = rbind(class.count, length(times))
     ts.window = tscopy[times]
     if(length(times) <= 1){
+      print(paste0('Skip ', next.t))
       next.t = next.t + 1
+      rmses = rbind(rmses, NA)
+      intercepts = rbind(intercepts, NA)
+      slopes = rbind(slopes, NA)
       next
     }
     
     avgs = timeseries.bin.and.average(ts.window, variable, bin.number=nbins)
+    if(nrow(avgs) <= 1){
+      print(paste0('Skip ', next.t))
+      next.t = next.t + 1
+      rmses = rbind(rmses, NA)
+      intercepts = rbind(intercepts, NA)
+      slopes = rbind(slopes, NA)
+      next
+    }
+    
     lm.avgs = lm( var.mean ~ poly(discharge.mean, 1), data=avgs)
+    intercepts = rbind(intercepts, lm.avgs$coefficients[1])
+    slopes = rbind(slopes, lm.avgs$coefficients[2])
+    
     lms[[i]] <- lm.avgs
     #print(summary(lm.avgs)$r.squared)
     avgs$temperature.class = i
@@ -70,49 +97,39 @@ running.regression = function(ts.temperature, window, nbins = 20, mode = 1){
     avgs$predictions = predict(lm.avgs)
     all.avgs = rbind(all.avgs, avgs)
     
-    #regressions = rbind(regressions, data.frame(discharge.mean = new.data$discharge.mean, 
-    #                                            predictions = predict(lm.avgs, new.data),
-    #                                            temperature.class = i,
-    #                                            temperature.target = min + window/2)) 
-    
     df = as.data.frame(ts.window)
-    #plot(df$Discharge, df$flux.mgs, xlab='Discharge (cfs)', ylab='HPOA Flux (mg/s)', 
-    #     xlim=c(0,100000), 
-    #   ylim=c(0, 8000000),
-    #    main = min)
-    #if(next.t == start) {
-    #  lines(avgs$discharge.mean, avgs$predictions, typ='l',
-    #        xlab='Discharge (cfs)', ylab='HPOA Flux (mg/s)', 
-    #       xlim=c(0,100000), 
-    #        ylim=c(0, 8000000),
-    #        col = colors[i],
-    #        lwd = 3
-    #  )
-    #} else {
-    #  lines(avgs$discharge.mean, avgs$predictions, col = colors[i], lwd=3)
-    #}
-    
+    if(plot) {
+      plot(df$Discharge, df[,variable], xlab='Discharge (cfs)', ylab='HPOA Flux (mg/s)', 
+         xlim=c(0,100000), 
+        ylim=c(0, maxy),
+        col = rainbow(6)[.indexyear(ts.window)-110],
+        main = paste0(min, ' to ', max))
+      lines(avgs$discharge.mean, avgs$predictions, col = colors[i], lwd=3)
+    }
     # assign original / prediction list
     temperature.target = min + window/2
     times = index(tshval[tshval$Temperature >= (temperature.target-.5) & tshval$Temperature < (temperature.target + .5) & is.na(tslval.nomax$Temperature)])
     if(length(times) != 0){
       ts.window = tscopy[times]
       df = as.data.frame(ts.window)
-      df = df[!is.na(df[,variable] & !is.na(df$Discharge)),]
+      df = df[!is.na(df[,variable]) & !is.na(df$Discharge),]
       predictions = predict(lm.avgs, data.frame(discharge.mean = df$Discharge))
-      lm.point.estimates = cbind(df$flux.mgs, predictions)
+      lm.point.estimates = cbind(df[,variable], predictions)
       point.estimates = rbind(point.estimates, lm.point.estimates)
+      rmses = rbind(rmses, rmse(df[,variable], predictions))
+    } else {
+      rmses = rbind(rmses, NA)
     }
     
-    next.t = next.t + 1
+    next.t = next.t + step
     i = i + 1
   }
   
   
   
   avgs.warming = all.avgs
-  regression.warming = regressions
-  warming.class.max = max(regression.warming$temperature.class)
+  #regression.warming = regressions
+  #warming.class.max = max(regression.warming$temperature.class)
   
   # add fall
   if(mode == 1) {
@@ -156,7 +173,8 @@ running.regression = function(ts.temperature, window, nbins = 20, mode = 1){
     #                                            predictions = predict(lm.avgs, new.data),
     #                                            temperature.class = i)) 
     
-    
+    if(plot) {
+      
     #if(j == 1) {
     #  plot(avgs$discharge.mean, avgs$predictions, typ='l',
     #       xlab='Discharge (cfs)', ylab='HPOA Flux (mg/s)', 
@@ -168,21 +186,21 @@ running.regression = function(ts.temperature, window, nbins = 20, mode = 1){
     #} else {
     #  lines(avgs$discharge.mean, avgs$predictions, col = colors[j], lwd=3)
     #}
+    }
     
     temperature.target = min + window/2
     times = index(tshval[tshval$Temperature >= (temperature.target-.5) & tshval$Temperature < (temperature.target + .5) & is.na(tslval.nomax$Temperature)])
     if(length(times) != 0){
       ts.window = tscopy[times]
       df = as.data.frame(ts.window)
-      df = df[!is.na(df[,variable] & !is.na(df$Discharge)),]
+      df = df[!is.na(df[,variable]) & !is.na(df$Discharge),]
       predictions = predict(lm.avgs, data.frame(discharge.mean = df$Discharge))
       lm.point.estimates = cbind(df[,variable], predictions)
       point.estimates = rbind(point.estimates, lm.point.estimates)
+      rmses = rbind(rmses, rmse(df[,variable], predictions))
     }
     
-    
-    
-    next.t = next.t - 1
+    next.t = next.t - step
     i = i + 1
     j = j + 1
   }
@@ -192,7 +210,90 @@ running.regression = function(ts.temperature, window, nbins = 20, mode = 1){
   
   point.estimates = data.frame(actual = point.estimates[,1], predicted = point.estimates[,2])
   point.estimates = point.estimates[!is.na(point.estimates$actual),]
+  point.estimates = point.estimates[!is.na(point.estimates$predicted),]
   print(nrow(point.estimates))
   rmserror = rmse(point.estimates$actual, point.estimates$predicted)
-  return(rmserror)
+  rval = list(intercepts, slopes, rmserror, rmses)
+  return(rval)
 }
+
+# ad hov remove hurricane
+tscopy.no.hurricane = tscopy[!(.indexyear(tscopy) == 111 & .indexyday(tscopy) > 230 & .indexyday(tscopy) < 260) ]
+
+par(mfrow=c(1,1))
+ts.temperature = ts.water.temp$WaterTemperature
+ts.values = tscopy
+varialbe = 'HPOA.mgl'
+window = 8
+rval = running.regression(ts.values, ts.temperature , window, variable, mode = 1, maxy = 4, plot=FALSE)
+par(mfrow=c(1,1))
+plot(rval[[4]], xlab='Temperature Class', ylab='RMSE of target set')
+
+
+par(mfrow=c(2,1))
+plot(rval[[1]], ylim=c(0,3), xlab='Temperature Class', ylab='Y Intercept')
+plot(rval[[2]], ylim=c(0,2), xlab='Tempearture Class', ylab='Slope')
+rval[[3]]
+
+
+windows = c(16,10,8,6,4,2)
+rvals = list()
+for(i in 1:length(windows)){
+  rval = running.regression(ts.values, ts.temperature , windows[i], variable, mode = 2, maxy = 4, plot=FALSE)
+  rvals[[i]] = rval
+  
+  par(mfrow=c(1,1))
+  plot(rval[[4]], xlab='Temperature Class', ylab='RMSE of target set', main=windows[i])
+  par(mfrow=c(2,1))
+  plot(rval[[1]], ylim=c(0,3), xlab='Temperature Class', ylab='Y Intercept', main=windows[i])
+  plot(rval[[2]], ylim=c(0,2), xlab='Tempearture Class', ylab='Slope', main=windows[i])
+  print(rval[[3]])
+}
+
+par(mfrow=c(1,1))
+plot(rvals[[1]][[4]], col=rainbow(6)[1], typ='l')
+lines(rvals[[2]][[4]], col=rainbow(6)[2])
+lines(rvals[[3]][[4]], col=rainbow(6)[3])
+lines(rvals[[4]][[4]], col=rainbow(6)[4])
+lines(rvals[[5]][[4]], col=rainbow(6)[5])
+lines(rvals[[6]][[4]], col=rainbow(6)[6])
+legend(x='topleft', legend=windows, col=rainbow(6), pch=1)
+
+rmses = NULL
+for(i in 1:length(windows)){
+  rmses = rbind(rmses, rvals[[i]][[3]])
+}
+plot(rmses)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# NDVI adventure
+par(mfrow=c(1,1))
+ts.temperature = ts.ndvi
+ts.values = tscopy
+varialbe = 'HPOA.mgl'
+window = 8
+rval = running.regression(ts.values, ts.temperature , window, variable, mode = 1, step=200, maxy = 4, plot=FALSE)
+par(mfrow=c(1,1))
+plot(rval[[4]], xlab='Temperature Class', ylab='RMSE of target set')
+
+
+

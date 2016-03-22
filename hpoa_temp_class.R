@@ -28,7 +28,7 @@ plot(tslval.nomax)
 
 
 # do the stuff
-par(mfrow=c(2,1))
+par(mfrow=c(2,2))
 new.data = data.frame(discharge.mean = seq(0,100000,100))
 noramlize.data = data.frame(discharge.mean = c(25000))
 
@@ -66,6 +66,9 @@ while(next.t < stop.t) {
   
   avgs = timeseries.bin.and.average(ts.window, variable, bin.number=nbins)
   lm.avgs = lm( var.mean ~ poly(discharge.mean, 1), data=avgs)
+  #lm.avgs = nls( var.mean ~ Vm * discharge.mean/(K+discharge.mean) + V0 , data = avgs,
+  #               start = c(V0 = 1, Vm = max(avgs$var.mean), K = 20000) )
+  #lm.avgs = nls( var.mean ~ a*(1 - exp(-b * discharge.mean)), data = avgs, start = c(a=3, b=2))
   lms[[i]] <- lm.avgs
   #print(summary(lm.avgs)$r.squared)
   avgs$temperature.class = i
@@ -78,12 +81,14 @@ while(next.t < stop.t) {
                                               temperature.class = i)) 
   
   df = as.data.frame(ts.window)
+  #df = df[nrow(df):1,]
   plot(df$Discharge, df[,variable],  xlab='Discharge (cfs)', ylab=variable, 
        xlim=c(0,100000), 
-       ylim=c(0, 3),
-       col = 'coral2',
+       ylim=c(0, 4),
+       col = rainbow(6)[.indexyear(ts.window) - 110],
        lwd = 3,
        main = paste0('T: ', as.integer(next.t), 'K'))
+  points(avgs$discharge.mean, avgs$var.mean, lwd = 4, col='purple')
   lines(new.data$discharge.mean, predictions, col = colors[i], lwd=3)
   
   next.t = next.t + step
@@ -141,7 +146,7 @@ while(next.t > stop.t) {
     plot(df$Discharge, df[,variable],  xlab='Discharge (cfs)', ylab=variable, 
          xlim=c(0,100000), 
          ylim=c(0, 4),
-         col = 'coral2',
+         col = rainbow(6)[.indexyear(ts.window) - 110],
          lwd = 3,
          main = paste0('T: ', as.integer(next.t), 'K'))
     points(avgs$discharge.mean, avgs$var.mean, lwd = 4, col='purple')
