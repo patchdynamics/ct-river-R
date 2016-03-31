@@ -9,8 +9,8 @@ timeseries.bin.and.average = function(ts.season, variable, bin.number = 100) {
     discharge = ts.ordered$Discharge, 
     var = ts.ordered[,variable])
   
-  #df$bin = cut2(df$discharge, g=bin.number)
-  df$bin = cut2(df$discharge,  1:bin.number  * 100000/bin.number)
+  df$bin = cut2(df$discharge, g=bin.number)
+  #df$bin = cut2(df$discharge,  1:bin.number  * 100000/bin.number)
   avgs = ddply(df, ~bin, summarise, discharge.mean=mean(discharge), var.mean=mean(var), n=length(var))
   return(avgs)
 }
@@ -18,16 +18,31 @@ timeseries.bin.and.average = function(ts.season, variable, bin.number = 100) {
 rising.step = function(timeseries) {
   processed = timeseries[,1]
   minimum = min(timeseries[,1])
-  highest = minimum
-  for(i in 1:nrow(timeseries)){
-    if(.indexyday(timeseries[i]) == 0) {
-      highest = minimum
+  highest = NA
+  l = nrow(timeseries)
+  for(i in 1:l){
+    #if(.indexyday(timeseries[i]) == 0) {
+    #  highest = minimum
+    #}
+    window.r = min(i+160, l)
+    window.l = max(1, i-160)
+    if(timeseries[i,1] == min(timeseries[window.l:window.r,1])){
+      if(i+160 > l){
+        highest = NA
+      } else {
+        highest = minimum
+      }
     }
-    if(as.numeric(timeseries[i,1]) > as.numeric(highest)){
-      highest = timeseries[i,1]
+    if(!is.na(highest)){
+      if(as.numeric(timeseries[i,1]) > as.numeric(highest)){
+        highest = timeseries[i,1]
+      }
+      processed[i,1] = highest
+    } else {
+      processed[i,1] = NA
     }
-    processed[i,1] = highest
   }
+  names(processed) = 'Temperature'
   return(processed)
 }
 
@@ -35,16 +50,28 @@ rising.step = function(timeseries) {
 falling.step = function(timeseries){
   processed = timeseries[,1]
   minimum = min(timeseries[,1])
-  highest = minimum
-  for(i in nrow(timeseries[,1]):1){
-    if(.indexyday(timeseries[i]) == 0) {
+  highest = NA
+  l = nrow(timeseries[,1])
+  
+  for(i in l:1){
+#    if(.indexyday(timeseries[i]) == 0) {
+#      highest = minimum
+#    }
+    window.r = min(i+160, l)
+    window.l = max(1, i-160)
+    if(timeseries[i,1] == min(timeseries[window.l:window.r,1])){
       highest = minimum
     }
-    if(as.numeric(timeseries[i,1]) > as.numeric(highest)){
-      highest = timeseries[i,1]
+    if(!is.na(highest)) {
+      if(as.numeric(timeseries[i,1]) > as.numeric(highest)){
+        highest = timeseries[i,1]
+      }
+      processed[i] = highest
+    } else {
+      processed[i] = NA
     }
-    processed[i] = highest
   }
+  names(processed) = 'Temperature'
   return(processed)
 }
 

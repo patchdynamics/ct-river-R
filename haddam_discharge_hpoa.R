@@ -41,6 +41,10 @@ legend("topright", bty="n",
 
 
 # fit HPI %
+hpi_fractionation = fractionation
+hpi_fractionation_series = xts(x=hpi_fractionation, order.by=collection.dates)
+
+
 hpi_fractionation = fractionation[as.character(fractionation$Collection.Date) != "4/15/14",]
 hpi_fractionation_series = xts(x=hpi_fractionation, order.by=collection.dates[as.character(collection.dates) != "2014-04-15"])
 hpi_fractionation_series = merge(tscombined$Discharge, hpi_fractionation_series[!is.na(index(hpi_fractionation_series))])
@@ -48,8 +52,9 @@ hpi_fdf = as.data.frame(hpi_fractionation_series)
 
 
 model = y ~ poly(x,2)
-model = y ~ log(x)
 
+
+model = y ~ log(x-4000)
 
 plot(hpi_fdf$Discharge, hpi_fdf$HPI_Percentage)
 x = hpi_fdf$Discharge
@@ -73,6 +78,37 @@ points(as.vector(tsd['2014-04-15'])/1000, hpi_outlier$HPI_Percentage, col='orang
 legend("topright", bty="n", 
        legend=paste("R2 =",format(summary(lm.discharge.hpi)$adj.r.squared, digits=4)))
 
+
+
+# Combined Plot
+plot(fdf$discharges_for_samples/1000, fdf$HPOA_Percentage*100, 
+     xlab='Discharge (x1000 cfs)', ylab='% of DOC',
+     col='blue',
+     ylim=c(0,60)
+)
+newdata = data.frame(x=seq(min(fdf$discharges_for_samples),max(fdf$discharges_for_samples),100))
+lines(newdata$x/1000, predict(lm.discharge.hpoa, newdata=newdata)*100,
+      col='blue', lwd=2)
+
+points(x/1000, y*100,
+     xlab='Discharge (x1000 cfs)', ylab='HPI %',
+     col='red', pch=2
+)
+newdata = data.frame(x=seq(min(x),max(x),100))
+lines(newdata$x/1000, predict(lm.discharge.hpi, newdata=newdata)*100,
+      col='red')
+
+hpi_outlier = fractionation[as.character(fractionation$Collection.Date) == "4/15/14",]
+points(as.vector(tsd['2014-04-15'])/1000, hpi_outlier$HPI_Percentage*100, col='green', pch=2)
+
+legend("bottomleft", pch=c(1,2,2), col=c('blue', 'red', 'green'),
+       legend=c(
+         paste("HPOA, r^2 =",format(summary(lm.discharge.hpoa)$adj.r.squared, digits=2), ' p < .001'),
+         paste("HPI, r^2 =",format(summary(lm.discharge.hpi)$adj.r.squared, digits=2), 'p < .001'),
+         'HPI outlier removed'
+         ),
+       cex=.8
+)
 
 
 

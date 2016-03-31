@@ -104,6 +104,9 @@ lines(thompsonville$val ~ thompsonville$dates, typ="l", col='red')
 lines(holyoke$val ~ holyoke$dates, typ="l", col='red')
 lines(total ~ haddam$dates, col='orange')
 
-
+# sonification projects
+library(dataRetrieval)
+discharges = readNWISuv('01193050', '00060', Sys.Date())
+max = discharges[]
 
 

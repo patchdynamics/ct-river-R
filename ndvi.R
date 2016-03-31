@@ -49,5 +49,5 @@ indexTZ(ts.ndvi) = Sys.getenv("TZ")
 
 save(ts.ndvi, file='ts.ndvi.Rdata')
 
-
+load('ts.ndvi.Rdata')
 
