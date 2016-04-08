@@ -18,7 +18,11 @@ discharge.diff[discharge.diff < 0] = -1
 discharge.diff[discharge.diff > 0] = 1
 discharge.diff[discharge.diff == 0] = 0
 names(discharge.diff) = 'Limb'
+
+indexTZ(discharge.diff) = Sys.getenv("TZ")
 plot(discharge.diff)
+tscopy2 = merge(tscopy, discharge.diff)
+
 
 fullseries = tscombined['2011-01-01/2015-12-31']
 nrow(fullseries)

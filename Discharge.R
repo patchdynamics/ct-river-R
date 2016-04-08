@@ -1,8 +1,8 @@
 # importing water data
 library('waterData')
 
-sdate = "2015-05-14"
-edate = "2015-06-24"
+sdate = "2001-01-01"
+edate = "2016-01-21"
 
 haddam = importDVs("01193050",code="00060", sdate=sdate, edate=edate)
 plotParam(haddam)
