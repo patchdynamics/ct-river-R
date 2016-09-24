@@ -7,6 +7,8 @@ library(lmtest)
 library(sandwich)
 source('multiplot.R')
 source('tools.R')
+library(parallel)
+library(xts)
 
 #save(tscopy, file='tscopy.withflux.Rdata')
 #tscopy.original = tscopy
@@ -26,9 +28,11 @@ variable = 'HPOA.mgl'
 window = 8
 
 par(mfrow=c(2,1))
-rval = running.regression(ts.values, ts.values, ts.temperature, window, variable, mode = 3, maxy = 4, 
+rval = running.regression(ts.values, ts.values, ts.temperature, window, variable, mode = 3, maxy = 1000000, 
                           plot=TRUE, method='all.points')
 rval[[3]]
+plot(rval$Point.Estimates[,1], ylim=c(0, max(rval$Point.Estimates[,2])))
+points(rval$Point.Estimates[,2], col='blue')
 
 par(mfrow=c(2,2))
 plot(rval[[4]], xlab='Temperature Class', ylab='RMSE of target set', main=rval[[3]], ylim=c(0,2))
@@ -49,7 +53,11 @@ plot(rval[[2]], ylim=c(0,8), xlab='Temperature Class', ylab='Slope',
 timeseries = list(ts.stemp$SoilTemperature1, ts.stemp$SoilTemperature2, tstemp, ts.water.temp$WaterTemperature)
 names = c('Soil Temp 1', 'Soil Temp 2', 'Air Temp', 'Water Temp')
 windows = c(10,10,10,10)
-ts.training = tscopy.no.hurricane  #### tscopy - HURRICANE IN tscopy.no.hurricane
+windows = c(10,10,10,16)
+windows = c(12, 8, 18, 18)  # ???
+
+#ts.training = tscopy.no.hurricane  #### tscopy - HURRICANE IN tscopy.no.hurricane
+ts.training = tscopy
 ts.training$Discharge = ts.training$Discharge * 28.3168 / 1000 / 1000 # place in untils of Ml
 for(j in 1:4){
   
@@ -57,7 +65,7 @@ for(j in 1:4){
   window = windows[j]
   par(mfrow=c(2,1))
   rval = running.regression(ts.training, ts.training, timeseries[[j]], window, variable, 
-                            mode = 1, maxy = 4, 
+                            mode = 1, maxy = 4,                            
                             plot=FALSE, method='all.points',
                             normalizing.discharges = c(20000,40000,60000,80000) * 28.3168 / 1000 / 1000 # place in untils of Ml
   )
@@ -156,15 +164,15 @@ windows = c(4000,3500,3000,2750,2500,2250,2000,1750)
 k = 4
 k.training = 2
 
-windows = c(10,8,6,4,2)
+windows = c(50,44,40,36,34,30,28,26,24,22,20,18,16,14,12,10,8,6,4,2)
 
-ts.values.without.winter = ts.full.values[.indexmon(ts.full.values) > 1 &  .indexmon(ts.full.values)  < 11]
+#ts.values.without.winter = ts.full.values[.indexmon(ts.full.values) > 1 &  .indexmon(ts.full.values)  < 11]
 
 #
 # Cross Validation Code
 #
 for(ts.temperature in list(ts.stemp$SoilTemperature1, ts.stemp$SoilTemperature2, tstemp, ts.water.temp$WaterTemperature )) {
-print('nexttemp')
+  print('nexttemp')
   tshval = rising.step(ts.temperature)
   tslval = falling.step(ts.temperature)
   tslval.nomax = temp = tslval
@@ -173,36 +181,35 @@ print('nexttemp')
   tshval.nomax = temp = tshval
   temp$Temperature[is.na(temp$Temperature)] = min(temp$Temperature, na.rm=TRUE)
   tshval.nomax[rollmax(temp$Temperature,150,align='center',fill='extend') == tshval] = NA
-
-errors.rmse = NULL
-for(w in 1:length(windows)) {
-  print(w)
-  combinations = combn(5,k.training)
-  cluster <- makeCluster(3, type="FORK")
-  rmses = parLapply(cluster, 1:ncol(combinations), function(i){
-  #rmses = lapply(1:ncol(combinations), function(i){
+  
+  errors.rmse = NULL
+  for(w in 1:length(windows)) {
+    print(w)
+    combinations = combn(5,k.training)
+    cluster <- makeCluster(3, type="FORK")
+    rmses = parLapply(cluster, 1:ncol(combinations), function(i){
       
-    #folds = (c(-1,0,1) + i) %% 5 + 1
-    folds = combinations[,i]
-    print(i)
-    ts.training = ts.full.values[ts.full.values$fold %in% folds]
-    ts.testing = ts.full.values[!(ts.full.values$fold %in% folds)]
-    rval = running.regression(ts.training, ts.testing,  ts.temperature, windows[w], variable, mode = 1, 
-                              step = 100, target.window = 250, #ndvi
-                              maxy=4,plot=FALSE, prewhite=FALSE,
-                             tshval = tshval, tslval=tslval, tshval.nomax=tshval.nomax, tslval.nomax=tslval.nomax)
-    return(rval[[3]])  
-  }) 
-  stopCluster(cluster)  
-  errors.rmse = rbind(errors.rmse, mean(as.numeric(rmses)))
-}
-par(mfrow=c(1,1))
-plot(windows, errors.rmse, typ='l')
-points(windows, errors.rmse)
-
+      folds = combinations[,i]
+      ts.training = ts.full.values[ts.full.values$fold %in% folds]
+      ts.testing = ts.full.values[!(ts.full.values$fold %in% folds)]
+      rval = running.regression(ts.training, ts.testing,  ts.temperature, windows[w], variable, mode = 1, 
+                                #step = 100, target.window = 250, #ndvi
+                                maxy=4,plot=FALSE, prewhite=FALSE,
+                                tshval = tshval, tslval=tslval, tshval.nomax=tshval.nomax, tslval.nomax=tslval.nomax)
+      return(rval[[3]])  
+    }) 
+    stopCluster(cluster)  
+    errors.rmse = rbind(errors.rmse, mean(as.numeric(rmses)))
+  }
+  par(mfrow=c(1,1))
+  plot(windows, errors.rmse, typ='l')
+  points(windows, errors.rmse)
+  
 }
 
-# check for significant bandwidth, run regression with all windows
+#
+# Check for significant bandwidth, run regression with all windows
+#
 rvals.all = list()
 for(ts.temperature in list(ts.stemp$SoilTemperature1, ts.stemp$SoilTemperature2, tstemp, ts.water.temp$WaterTemperature )) {
   print('nexttemp')
@@ -215,26 +222,25 @@ for(ts.temperature in list(ts.stemp$SoilTemperature1, ts.stemp$SoilTemperature2,
   temp$Temperature[is.na(temp$Temperature)] = min(temp$Temperature, na.rm=TRUE)
   tshval.nomax[rollmax(temp$Temperature,150,align='center',fill='extend') == tshval] = NA
   
-cores = 3
-cluster <- makeCluster(cores, type="FORK")
-rvals = parLapply(cluster, 
-                  #(1:50)*2,
-                  windows,
-                  function(window){
-#rvals = lapply((1:15)*2, function(window){
-  rval = running.regression(ts.full.values, ts.full.values, ts.temperature, window, variable, 
-                            mode = 3, 
-                            step = 100, target.window = 250, #ndvi
-                            maxy=4,plot=FALSE,
-                            tshval = tshval, tslval=tslval, tshval.nomax=tshval.nomax, tslval.nomax=tslval.nomax,
-                            prewhite = FALSE, drop.insignificant=TRUE)
+  cores = 3
+  cluster <- makeCluster(cores, type="FORK")
+  rvals = parLapply(cluster, 
+                    #(1:50)*2,
+                    windows,
+                    function(window){
+                      rval = running.regression(ts.full.values, ts.full.values, ts.temperature, window, variable, 
+                                                mode = 1, 
+                                                # step = 100, target.window = 250, #ndvi
+                                                maxy=4,plot=FALSE,
+                                                tshval = tshval, tslval=tslval, tshval.nomax=tshval.nomax, tslval.nomax=tslval.nomax,
+                                                prewhite = FALSE, drop.insignificant=FALSE)
+                      
+                      return(rval)  
+                    })
+  stopCluster(cluster)
   
-  return(rval)  
-})
-stopCluster(cluster)
-
-rvals.all[[length(rvals.all)+1]] = rvals
-
+  rvals.all[[length(rvals.all)+1]] = rvals
+  
 }
 
 for(rvals  in rvals.all){

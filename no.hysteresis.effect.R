@@ -1,11 +1,12 @@
 library(bbmle)
 library(xts)
 library(Hmisc)
+library(lmtest)
 
 all.data = as.data.frame(tscopy2)
 all.data$Discharge.m3s = all.data$Discharge * 0.028316
 all.data$Month = cut(.indexmon(tscopy2), breaks=c(-1,5,9,12))
-                         
+
 
 all.data = all.data[!is.na(all.data$Discharge.m3s) & !is.na(all.data$HPOA.mgl),]
 
@@ -15,7 +16,7 @@ part.data$Limb = factor(part.data$Limb)
 x1 = part.data$HPOA.mgl[-nrow(part.data)]
 x2 = part.data$HPOA.mgl[-1]
 summary(lm(x2 ~ x1))
-coeftest(lm(x2 ~ x1))[8] 
+coeftest(lm(x2 ~ x1))[8]  # checking autocorrellation
 
 
 nfit.0 = mle2(HPOA.mgl ~ dnorm(mean = m * Discharge.m3s + b, sd = 1),
@@ -37,7 +38,7 @@ anova(nfit.0, nfit.mon)[10]
 
 
 power = NULL
-for(i in 1:50){
+for(i in 1:1000){
   print(i)
   
   part.data = all.data[sample(1:nrow(all.data), nrow(all.data)/10),]
@@ -58,10 +59,10 @@ for(i in 1:50){
                   parameters = list( m ~ Month, b ~ Month))
   p = predict(nfit.mon)
   
-  plot(part.data$Discharge.m3s, part.data$HPOA.mgl, col=rainbow(3)[as.numeric(part.data$Month)])
-  points(part.data$Discharge.m3s[as.numeric(part.data$Month)==1], p[as.numeric(part.data$Month)==1])
-  points(part.data$Discharge.m3s[as.numeric(part.data$Month)==2], p[as.numeric(part.data$Month)==2])
-  points(part.data$Discharge.m3s[as.numeric(part.data$Month)==3], p[as.numeric(part.data$Month)==3])
+  #plot(part.data$Discharge.m3s, part.data$HPOA.mgl, col=rainbow(3)[as.numeric(part.data$Month)])
+  #points(part.data$Discharge.m3s[as.numeric(part.data$Month)==1], p[as.numeric(part.data$Month)==1])
+  #points(part.data$Discharge.m3s[as.numeric(part.data$Month)==2], p[as.numeric(part.data$Month)==2])
+  #points(part.data$Discharge.m3s[as.numeric(part.data$Month)==3], p[as.numeric(part.data$Month)==3])
   
   nfit.mon.limb = mle2(HPOA.mgl ~ dnorm(mean = m * Discharge.m3s + b, sd = sd),
                   start=list(m = 1/1000 , b=1.5, sd=1), data = part.data,
@@ -84,7 +85,7 @@ all.data$Discharge.m3s = all.data$Discharge * 0.028316
 all.data$Month = cut(.indexmon(tscopy2), breaks=c(-1,5,9,12))
 all.data = all.data[!is.na(all.data$Discharge.m3s) & !is.na(all.data$flux.mgs),]
 power = NULL
-for(i in 1:100){
+for(i in 1:1000){
   print(i)
   part.data = all.data[sample(1:nrow(all.data), nrow(all.data)/10),]
   part.data$Limb = factor(part.data$Limb)

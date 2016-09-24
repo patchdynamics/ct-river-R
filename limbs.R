@@ -1,26 +1,32 @@
+library(DVstats) # usgs hysep code
 
 tsfilled =  na.approx(tscopy$Discharge)
+timestamps = index(tsfilled)
+df1.zoo<-zoo(, seq(timestamps[1],timestamps[length(timestamps)],by="day")) #set date to Index
+merge(tsfilled, df1.zoo)
+tsfilled =  na.approx(tsfilled$Discharge)
+hysep.out = hysep(as.vector(tsfilled$Discharge), as.Date(index(tsfilled)), da=10870.706, STAID='01193050')
 
-range = '2011-01-01/2016-01-01'
-discharge = tsfilled['2011-01-01/2016-01-01']
+plot(hysep.out$Flow, typ='l')
+lines(hysep.out$Sliding, col='red')
+lines(hysep.out$Sliding + 5000, col='coral1')
+
+
+#range = '2011-01-01/2016-01-01'
+#discharge = tsfilled['2011-01-01/2016-01-01']
 discharge = tsfilled
 discharge.diff = diff.xts(discharge)
-discharge.diff[abs(discharge.diff) < 2000] = 0
+indexTZ(discharge.diff) = Sys.getenv("TZ")
+
+#discharge.diff[abs(discharge.diff) < 2000] = 0
+discharge.diff[ tsfilled$Discharge <  hysep.out$Sliding + 2000] = 0
 discharge.diff[is.na(discharge.diff)] = -9990
 discharge.diff[is.nan(discharge.diff)] = -9990
-
-
-par(mfrow=c(2,1))
-plot(discharge)
-plot(discharge.diff)
-
 discharge.diff[discharge.diff < 0] = -1
 discharge.diff[discharge.diff > 0] = 1
 discharge.diff[discharge.diff == 0] = 0
 names(discharge.diff) = 'Limb'
-
 indexTZ(discharge.diff) = Sys.getenv("TZ")
-plot(discharge.diff)
 tscopy2 = merge(tscopy, discharge.diff)
 
 
@@ -45,9 +51,9 @@ par(mfrow=c(1,1))
 
 par(mfrow=c(3,4))
 
-above = 5 - 1  # not indexing starts with 0
-below = 7 - 1
-subsetseries = fullseries[.indexmon(fullseries) > above & .indexmon(fullseries) < below]
+above = 6 - 1  # not indexing starts with 0
+below = 9 - 1
+subsetseries = tscopy2[.indexmon(tscopy2) > above & .indexmon(tscopy2) < below]
 discharge = na.approx(subsetseries$Discharge, na.rm=FALSE)
 discharge = as.data.frame(discharge)
 subset = as.data.frame(subsetseries)
@@ -67,16 +73,20 @@ plot(subset$Discharge, subset$HPOA.mgl, ylim=c(1,3.5), col=colors(subsetseries))
 
 #lines(x, predict(lm.HPOA), col='red')
 
-
+subset = as.data.frame(tscopy2)
 par(mfrow=c(2,2))
-rising = subset[summer$Limb == 1,]
-plot(rising$Discharge/1000, rising$HPOA.mgl, ylim=c(1,3.5), xlim=c(0,100000)/1000)
-falling = subset[summer$Limb == -1,]
-plot(falling$Discharge/1000, falling$HPOA.mgl, ylim=c(1,3.5), xlim=c(0,100000)/1000)
-baseflow = subset[summer$Limb == 0,]
-plot(baseflow$Discharge/1000, baseflow$HPOA.mgl, ylim=c(1,3.5), xlim=c(0,100000)/1000)
+rising = subset[subset$Limb == 1,]
+plot(rising$Discharge/1000, rising$HPOA.mgl, ylim=c(1,3.5), xlim=c(0,100000)/1000,
+     ylab = 'mg/l', xlab='Discharge (cfs/1000)', main='Rising Limb', col='coral4')
+falling = subset[subset$Limb == -1,]
+plot(falling$Discharge/1000, falling$HPOA.mgl, ylim=c(1,3.5), xlim=c(0,100000)/1000,
+     ylab = 'mg/l', xlab='Discharge (cfs/1000)', main='Falling Limb', col='coral4')
+lowflow = subset[subset$Limb == 0,]
+plot(lowflow$Discharge/1000, lowflow$HPOA.mgl, ylim=c(1,3.5), xlim=c(0,100000)/1000,
+     ylab = 'mg/l', xlab='Discharge (cfs/1000)', , main='Low Flow', col='coral4')
 storm = rbind(rising, falling)
-plot(storm$Discharge/1000, storm$HPOA.mgl, ylim=c(1,3.5), xlim=c(0,100000)/1000)
+plot(storm$Discharge/1000, storm$HPOA.mgl, ylim=c(1,3.5), xlim=c(0,100000)/1000,
+     ylab = 'mg/l', xlab='Discharge (cfs/1000)', , main='Storm', col='coral4')
 
 
 #collection.dates = strptime(as.character(fractionation$Collection.Date), '%m/%d/%y')

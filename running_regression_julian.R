@@ -1,5 +1,6 @@
 library(reshape2)
 library(ggplot2)
+library(parallel)
 source('multiplot.R')
 
 #save(tscopy, file='tscopy.withflux.Rdata')
@@ -11,7 +12,7 @@ tscopy = tscopy.original
 # leave a whole year out each fold
 
 tscopy$julian = .indexyday(tscopy)
-tscopy$fold = .indexyear(tscopy) - min(.indexyear(tscopy)) + 1
+tscopy$fold = .indexyear(tscopy) - min(.indexyear(tscopy))
 ts.prepare.1 = tscopy[!is.na(tscopy$flux.mgs) & !is.na(tscopy$Discharge)]
 ts.prepare.1$Discharge = ts.prepare.1$Discharge  * 0.028316 # cubic meters per second
 df.prepare.1 = as.data.frame(ts.prepare.1)
@@ -53,18 +54,18 @@ for(w in windows){
   for(i in 1:k) {
     ts.training = df.prepare.1[df.prepare.1$fold!=i,]
     ts.testing = df.prepare.1[df.prepare.1$fold==i,]
-    rval = running.regression.julian(ts.training, ts.testing, variable, window=w, mode=2)
+    rval = running.regression.julian(ts.training, ts.testing, variable, window=w, mode=1)
     rvals = rbind(rvals, rval)
-    if(i==1){
-      plot(rval[[2]])
-    } else {
-      points(rval[[2]], pch=i)
-    }
+    #if(i==1){
+    #  plot(rval[[2]])
+    #} else {
+    #  points(rval[[2]], pch=i)
+    #}
   }
   errors.rmse=rbind(errors.rmse, mean(as.numeric(rvals[,3])))
 }
 plot(windows, errors.rmse)
-plot(HPOA.mgl ~ julian, df, col=rainbow(5)[.indexyear(ts.prepare.1)-110])
+#plot(HPOA.mgl ~ julian, df, col=rainbow(5)[.indexyear(ts.prepare.1)-110])
 
 
 ts.prepare.1$Discharge = ts.prepare.1$Discharge * 28.3168 / 1000 / 1000 # place in untils of Ml
@@ -110,6 +111,7 @@ for(i in 1:90){
 }
 
 windows = (1:80)*2
+windows = (1:40)*4
 errors.rmse = NULL
 for(w in 1:length(windows)) {
   print(windows[w])

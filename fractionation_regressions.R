@@ -80,6 +80,22 @@ lines(ts$HPOA.mgl + ts$TPIA.mgl, col='red')
 
 plot(ts$TPIA.mgl)
 
+# FOA
+dffoa = df[!is.na(df$TPIA..) & df$TPIA.. != '' & df$TPIA.. !='<NA>' & !is.na(df$HPOA..) & df$HPOA.. != '' & df$HPOA.. !='<NA>' ,]
+dffoa = data.frame(date = dffoa$Collection.Date, DOC = dffoa$DOC..ppm.C., HPOA.Percent = dffoa$HPOA.., TPIA.Percent = dffoa$TPIA..)
+dffoa$FOA.Percent = as.numeric(substr(as.character(dftpia$HPOA.Percent),1,2)) / 100 + as.numeric(substr(as.character(dftpia$TPIA.Percent),1,2)) / 100
+head(dffoa)
+times = strptime(dffoa$date, '%m/%d/%y')
+ts.foa = xts(dffoa, order.by=times)
+
+FDOM = tscombined$FDOM.QSE[!is.na(tscombined$FDOM.QSE)]
+ts.foa = merge(ts.foa, FDOM[times])
+ts.foa$FOA = ts.foa$DOC * ts.foa$FOA.Percent
+formula = FOA ~ FDOM.QSE
+lm.foa = lm(formula, as.data.frame(ts.foa))
+summary(lm.foa)
+
+
 library(ggplot2)
 ts.df = as.data.frame(ts)
 ts.df$Time = index(ts)

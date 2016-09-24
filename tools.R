@@ -15,6 +15,58 @@ timeseries.bin.and.average = function(ts.season, variable, bin.number = 100) {
   return(avgs)
 }
 
+circular = function(timeseries){
+  processed = timeseries[,1]
+  max.timeseries = max(timeseries[,1])
+  max.index = match(max(timeseries[1:365,1]), timeseries[,1])
+  min.index = match(min(timeseries[1:365,1]), timeseries[,1])
+  side.sign = sign(min.index-max.index)
+  
+  l = nrow(timeseries)
+  for( i in 1:l){
+    window.r = min(i+160, l)
+    window.l = max(1, i-160)
+  
+    if(timeseries[i,1] == min(timeseries[window.l:window.r,1])){
+      side.sign = 1 #  'rising'
+    } else if(timeseries[i,1] == max(timeseries[window.l:window.r, 1])){
+      side.sign = -1 # 'falling'
+    }
+    processed[i,1] = side.sign * ( timeseries[i,1] - max.timeseries )  
+  }
+  processed = processed + ( max.timeseries - min(timeseries[,1]))
+  return(processed)
+}
+
+moving.window = function(circular.timeseries, window, step=1){
+  l = nrow(circular.timeseries)
+  max.timeseries = max(circular.timeseries[,1], na.rm=TRUE)
+  loop2 = circular.timeseries
+  loop2[,1] = loop2[,1] + max.timeseries
+  looped.timeseries = rbind(circular.timeseries, loop2)
+  
+  par(mfrow=c(1,1))
+  for(i in seq(0,max.timeseries, step)){
+    min = i
+    max = (min + window) #%% max.timeseries
+    times = index(looped.timeseries[looped.timeseries[,1] >= min
+                                      & looped.timeseries[,1] < max
+                                      ])
+    subset = circular.timeseries[times]
+    plot(subset) 
+  }
+}
+
+translate.classes = function(classes, original.timeseries){
+  max.timeseries = max(original.timeseries[,1])
+  min.timeseries = min(original.timeseries[,1])
+  classes.centered = classes - ( max.timeseries - min.timeseries)
+  classes.translated = classes.centered
+  classes.translated[classes.centered <= 0] = max.timeseries + classes.centered[classes.centered <= 0] 
+  classes.translated[classes.centered > 0]  = max.timeseries - classes.centered[classes.centered > 0]
+  return(classes.translated)
+}
+
 rising.step = function(timeseries) {
   processed = timeseries[,1]
   minimum = min(timeseries[,1])

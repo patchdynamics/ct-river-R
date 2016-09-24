@@ -125,7 +125,9 @@ running.regression = function(ts.training, ts.testing, ts.temperature, window, v
       max.discharge = max(df$Discharge)
       q25.discharge = quantile(df$Discharge, na.rm=TRUE)[2]
       q75.discharge = quantile(df$Discharge, na.rm=TRUE)[4]
-      q90.discharge = quantile(df$Discharge, probs=.9, na.rm=TRUE)[1]
+      q95.discharge = quantile(df$Discharge, probs=.95, na.rm=TRUE)[1]
+      q99.discharge = quantile(df$Discharge, probs=.99, na.rm=TRUE)[1]
+     
       print(max.discharge)
       if(plot) {
         plot(df$Discharge, df[,variable], xlab='Discharge (m^3/s)', ylab='HPOA Flux (mg/s)', 
@@ -139,9 +141,11 @@ running.regression = function(ts.training, ts.testing, ts.temperature, window, v
       if(next.t + window <= max(tshval, na.rm=TRUE)) {
         times = index(tshval[tshval$Temperature >= (temperature.target-target.window/2) & tshval$Temperature < (temperature.target + target.window/2) & is.na(tslval.nomax$Temperature)])
       } else if(temperature.target > 0){
+        # I believe this is redundant!
         times = index(tshval[tshval$Temperature >= (temperature.target-target.window/2) & tshval$Temperature < (temperature.target + target.window/2)  & is.na(tslval.nomax$Temperature)]) 
       } else {
         temperature.target = -temperature.target
+        # I BELIEVE THIS IS WRONG, see how it's done above
         times = index(tshval[tslval$Temperature >= (temperature.target-target.window/2) & tslval$Temperature < (temperature.target + target.window/2) ]) 
       }
       
@@ -164,7 +168,7 @@ running.regression = function(ts.training, ts.testing, ts.temperature, window, v
       if(new.values == FALSE) {
         rmses = rbind(rmses, NA)
       }
-      normalizing.discharges.1 = rbind(normalizing.discharges, avg.discharge, min.discharge, max.discharge, q25.discharge, q75.discharge, q90.discharge)
+      normalizing.discharges.1 = rbind(normalizing.discharges, avg.discharge, min.discharge, max.discharge, q25.discharge, q75.discharge, q95.discharge, q99.discharge)
       normalized.estimate = predict(lm.avgs, normalizing.discharges.1)
       normalized.estimates = rbind(normalized.estimates, normalized.estimate)
       
@@ -200,10 +204,10 @@ running.regression = function(ts.training, ts.testing, ts.temperature, window, v
       classes = rbind(if(exists('classes')) classes else NULL, temperature.target)
       
       if(min > stop.t) {
-        times = index(tshval[!is.na(tslval.nomax$Temperature) & tslval$Temperature <= max & tslval$Temperature >= min ])
+        times = index(tslval[!is.na(tslval.nomax$Temperature) & tslval$Temperature <= max & tslval$Temperature >= min ])
       } else {
         #need to wrap
-        times = index(tshval[tslval$Temperature <= max | tshval$Temperature <= rising.next])
+        times = index(tslval[tslval$Temperature <= max | tshval$Temperature <= rising.next])
         rising.next = rising.next + 1
       }
       valid = FALSE
@@ -254,7 +258,8 @@ running.regression = function(ts.training, ts.testing, ts.temperature, window, v
       max.discharge = max(df$Discharge)
       q25.discharge = quantile(df$Discharge, na.rm=TRUE)[2]
       q75.discharge = quantile(df$Discharge, na.rm=TRUE)[4]
-      q90.discharge = quantile(df$Discharge, probs=.9, na.rm=TRUE)[1]
+      q95.discharge = quantile(df$Discharge, probs=.95, na.rm=TRUE)[1]
+      q99.discharge = quantile(df$Discharge, probs=.99, na.rm=TRUE)[1]
       
       print(max.discharge)
       
@@ -267,8 +272,11 @@ running.regression = function(ts.training, ts.testing, ts.temperature, window, v
         lines(avgs$discharge.mean, predict(lm.avgs), col = 'red', lwd=3)
       }
       
-      times = index(tshval[tshval$Temperature >= (temperature.target-target.window/2) & tshval$Temperature < (temperature.target + target.window/2) & is.na(tslval.nomax$Temperature)])
-      new.values = FALSE
+     # times = index(tshval[tshval$Temperature >= (temperature.target-target.window/2) & tshval$Temperature < (temperature.target + target.window/2) & is.na(tslval.nomax$Temperature)])
+     # the above looks wrong to me, shouldn't it be tslval, which is the falling period index?
+     times = index(tslval[tslval$Temperature >= (temperature.target-target.window/2) & tslval$Temperature < (temperature.target + target.window/2) & is.na(tshval.nomax$Temperature)])
+     
+     new.values = FALSE
       if(length(times) > 0 && nrow(ts.testing[times,]) > 0) {
         ts.window = ts.testing[times,]
         df = as.data.frame(ts.window)
@@ -284,7 +292,7 @@ running.regression = function(ts.training, ts.testing, ts.temperature, window, v
       if(new.values == FALSE) {
         rmses = rbind(rmses, NA)
       }
-      normalizing.discharges.1 = rbind(normalizing.discharges, avg.discharge, min.discharge, max.discharge, q25.discharge, q75.discharge, q90.discharge)
+      normalizing.discharges.1 = rbind(normalizing.discharges, avg.discharge, min.discharge, max.discharge, q25.discharge, q75.discharge, q95.discharge, q99.discharge)
       normalized.estimate = predict(lm.avgs, normalizing.discharges.1)
       normalized.estimates = rbind(normalized.estimates, normalized.estimate)
       
@@ -296,7 +304,7 @@ running.regression = function(ts.training, ts.testing, ts.temperature, window, v
     regressions = rbind(regressions, regressions.cooling)
   }
   
-  point.estimates = data.frame(actual = point.estimates[,1], predicted = point.estimates[,2])
+  point.estimates = data.frame(actual = point.estimates[,1], predicted = point.estimates[,2], class = point.estimates[,3])
   point.estimates = point.estimates[!is.na(point.estimates$actual),]
   point.estimates = point.estimates[!is.na(point.estimates$predicted),]
   print(paste('Number of point estimates', nrow(point.estimates)))

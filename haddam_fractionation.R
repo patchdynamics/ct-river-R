@@ -6,7 +6,7 @@ fractionation$HPOA_ppm = fractionation$DOC..ppm.C. * fractionation$HPOA_Percenta
 fractionation$HPI_Percentage = as.numeric(substring(as.character(fractionation$HPI..),1,2))/100
 fractionation$HPI_ppm = fractionation$DOC..ppm.C. * fractionation$HPI_Percentage
 fractionation$TPIA_Percentage = as.numeric(substring(as.character(fractionation$TPIA..),1,2))/100
-
+fractionation$TPIA_ppm = fractionation$DOC..ppm.C. * fractionation$TPIA_Percentage
 
 plot(fractionation$DOC..ppm.C., fractionation$HPOA_Percentage)
 plot(fractionation$DOC..ppm.C., fractionation$HPOA_Percentage, ylim=c(0,1))
@@ -28,6 +28,15 @@ plot(fractionation$DOC..ppm.C., fractionation$HPOA_ppm, col='blue',
      ylim=c(0,3), xlab='[DOC] ppm', ylab='ppm')
 points(fractionation$DOC..ppm.C., fractionation$HPI_ppm, col='orange')
 legend("topleft", c("HPOA", "HPI"), pch=1, col=c('blue', 'orange'))
+
+
+##  Adding in the Remainder calculation
+fractionation$Remainder.ppm = fractionation$DOC..ppm.C. - 
+  (fractionation$HPOA_ppm + fractionation$HPI_ppm + fractionation$TPIA_ppm)
+points(fractionation$DOC..ppm.C., fractionation$Remainder.ppm, col='red')
+
+points(fractionation$DOC..ppm.C., fractionation$TPIA_ppm, col='green')
+
 
 #HPI
 plot(fractionation$DOC..ppm.C., fractionation$HPI_Percentage, 
